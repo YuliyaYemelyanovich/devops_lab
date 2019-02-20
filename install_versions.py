@@ -14,3 +14,4 @@ os.system("pyenv local 2.7.1")
 os.system("pyenv virtualenv python2")
 
 os.system("pyenv local {}".format(initial_version))
+
