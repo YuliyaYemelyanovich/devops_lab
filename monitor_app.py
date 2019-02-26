@@ -1,12 +1,15 @@
 import psutil
 import time
+import sys
+import configparser
 
 class Monitor:
 	def __init__(self):
 		self.snap_num = 0
-		self.conf_format = 'text'
-		self.interval = 5 * 60
-		self.output_path = "./snapshot.log"
+		conf = Monitor_config_parser.parse_config()
+		self.conf_format = conf['outputformat']
+		self.interval = conf['sleepinterval']
+		self.output_path = conf['outputpath']
 
 	def __take_snapshot(self):
 		snapshot = {}
@@ -42,12 +45,32 @@ class Monitor_output:
 		print('json')
 		print(snapshot)
 
-#class Monitor_config_parser:
+class Monitor_config_parser:
 
-	#@staticmethod
-	#def parse_config():
+	@staticmethod
+	def parse_config():
+		config = configparser.ConfigParser()
+		config.read('monitor.ini')
+		if not Monitor_config_parser.check_config(config):
+			sys.exit()
+		return dict(config['common'])
 
-
+	@staticmethod
+	def check_config(config):
+		if 'common' not in config:
+			print('Error while parsing config file! No section common found!')
+			return False
+		elif 'sleepinterval' not in config['common']:
+			print('Error while parsing config file! No parameter SleepInterval found!')
+			return False
+		elif 'outputformat' not in config['common']:
+			print('Error while parsing config file! No parameter OutputFormat found!')
+			return False
+		elif 'outputpath' not in config['common']:
+			print('Error while parsing config file! No parameter OutputPath found!')
+			return False
+		else:
+			return True
 
 
 if __name__ == '__main__':
