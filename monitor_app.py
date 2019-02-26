@@ -2,48 +2,55 @@ import psutil
 import time
 import sys
 import configparser
+import datetime
+import os
+import json
 
 class Monitor:
 	def __init__(self):
 		self.snap_num = 0
 		conf = Monitor_config_parser.parse_config()
-		self.conf_format = conf['outputformat']
+		self.out_format = conf['outputformat']
 		self.interval = conf['sleepinterval']
 		self.output_path = conf['outputpath']
+
+	def run(self):
+		self.__output(self.__take_snapshot())
+		while(True):
+			time.sleep(int(self.interval))
+			self.__output(self.__take_snapshot())
 
 	def __take_snapshot(self):
 		snapshot = {}
 		snapshot['cpu'] = psutil.cpu_percent(interval=0.1)
-		snapshot['memory'] = psutil.disk_usage('/')
-		snapshot['virtual_memory'] = psutil.virtual_memory()
-		snapshot['io_info'] = psutil.disk_io_counters(perdisk=False)
-		snapshot['network_info'] = psutil.net_if_stats()
+		data = psutil.disk_usage('/')
+		snapshot['memory'] = {'total': data.total, 'used': data.used ,'free': data.free, 'percent': data.percent}
+		data = psutil.virtual_memory()
+		snapshot['virtual_memory'] = {'total': data.total, 'available': data.available ,'percent': data.percent}
+		data = psutil.disk_io_counters(perdisk=False)
+		snapshot['io_info'] = {'write_count': data.write_count, 'read_count': data.read_count}
+		data = psutil.net_if_stats()
+		for i in data.keys():
+			data[i] = { 'isup': data[i].isup, 'speed': data[i].speed, 'mtu': data[i].mtu }
+		snapshot['network_info'] = data
 		self.snap_num += 1
 		return snapshot
 
-	def run(self):
-		Monitor_output.output(self.conf_format, self.__take_snapshot())
-		'''while(True):
-			time.sleep(self.interval)
-			Monitor_output.output(self.conf_format, self.__take_snapshot())'''
+	def __output(self, snapshot):
+		if self.out_format == 'text':
+			self.__output_text(snapshot)
+		elif self.out_format == 'json':
+			self.__output_json(snapshot)
 
-class Monitor_output:
+	def __output_text(self, snapshot):	
+		with open(self.output_path, 'a+') as out:
+			out.write('SNAPSHOT {}: TIMESTAMP {}: '.format(self.snap_num, datetime.datetime.now()))
+			out.write('%s \n' % str(snapshot))
 
-	def output(format, snapshot):
-		if format == 'text':
-			Monitor_output.__output_text(snapshot)
-		elif format == 'json':
-			Monitor_output.__output_json(snapshot)
-		else:
-			print('invalid config file')
-
-	def __output_text(snapshot):
-		print('text')
-		print(snapshot)
-
-	def __output_json(snapshot):
-		print('json')
-		print(snapshot)
+	def __output_json(self, snapshot):
+		snapshot = {'snapshot': self.snap_num, 'timestamp': str(datetime.datetime.now()), 'data': snapshot}
+		with open(self.output_path, 'a+') as out:
+			json.dump(snapshot, out, indent = 4)
 
 class Monitor_config_parser:
 
@@ -51,12 +58,12 @@ class Monitor_config_parser:
 	def parse_config():
 		config = configparser.ConfigParser()
 		config.read('monitor.ini')
-		if not Monitor_config_parser.check_config(config):
+		if not Monitor_config_parser.__check_config(config):
 			sys.exit()
 		return dict(config['common'])
 
 	@staticmethod
-	def check_config(config):
+	def __check_config(config):
 		if 'common' not in config:
 			print('Error while parsing config file! No section common found!')
 			return False
