@@ -28,9 +28,9 @@ class Monitor_output:
 
 	def output(format, snapshot):
 		if format == 'text':
-			__output_text(snapshot)
+			Monitor_output.__output_text(snapshot)
 		elif format == 'json':
-			__output_json(snapshot)
+			Monitor_output.__output_json(snapshot)
 		else:
 			print('invalid config file')
 
@@ -43,6 +43,9 @@ class Monitor_output:
 		print(snapshot)
 
 #class Monitor_config_parser:
+
+	#@staticmethod
+	#def parse_config():
 
 
 
