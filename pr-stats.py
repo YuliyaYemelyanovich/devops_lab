@@ -4,6 +4,14 @@ import argparse
 import time
 
 
+def repo_name(repo):
+    if '/' not in repo:
+        mesg = 'Invalid repo name! Please, specify repo in format user/repo'
+        raise argparse.ArgumentTypeError(mesg)
+    else:
+        return repo
+
+
 class PR_stats:
 
     def __init__(self):
@@ -20,7 +28,7 @@ class PR_stats:
     def parse_args():
         parser = argparse.ArgumentParser(prog='Pull Requests statistics')
         parser.add_argument('username', help='Username to login on github')
-        parser.add_argument('repo', help='Repo information in format username/repo')
+        parser.add_argument('repo', help='Repo information in format user/repo', type=repo_name)
         helptext = 'Output pull requests opened by user with given login'
         parser.add_argument('--login', '-l', help=helptext)
         parser.add_argument('--title', '-t', help='Output pull requests with given title')
@@ -33,13 +41,13 @@ class PR_stats:
 
     def run(self):
         self.print_stats()
-        if(self.login is not None):
+        if self.login is not None:
             self.search_by_login()
-        if(self.title is not None):
+        if self.title is not None:
             self.search_by_title()
-        if(self.before is not None):
+        if self.before is not None:
             self.search_before()
-        if(self.after is not None):
+        if self.after is not None:
             self.search_after()
         self.print_pr_info()
 
@@ -54,7 +62,7 @@ class PR_stats:
         opened = 0
         all_pr = 0
         for i in self.pr_info:
-            if(i['state'] == 'open'):
+            if i['state'] == 'open':
                 opened += 1
             else:
                 closed += 1
